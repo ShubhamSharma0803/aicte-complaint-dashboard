@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AICTE Integrated Institution Complaint Monitoring Dashboard</title>
+    <!-- Offline vendor libraries (Zero external CDN calls) -->
+    <script src="/static/vendor/tailwind.js"></script>
+    <script src="/static/vendor/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script>
+        // Configure Tailwind theme tokens
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        aicte: {
+                            navy: '#1e3a8a',
+                            navylight: '#2563eb',
+                            navydark: '#0f172a',
+                            saffron: '#f59e0b',
+                            saffronlight: '#fef3c7',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TOP HEADER -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <header class="bg-[#1e3a8a] text-white shadow-md sticky top-0 z-40 border-b border-blue-900">
+        <div class="px-4 lg:px-6 py-2.5 flex items-center justify-between">
+            <!-- Brand & Identity -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl shadow-inner">
+                    🏛️
+                </div>
+                <div>
+                    <h1 class="font-bold text-base md:text-lg tracking-tight leading-tight text-white flex items-center gap-2">
+                        <span>AICTE Integrated Institution Complaint Monitoring Dashboard</span>
+                    </h1>
+                    <p class="text-xs text-amber-300 font-medium tracking-wide flex items-center gap-2">
+                        <span>Single Window • Real-time Cross-Bureau Coordination</span>
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Header Controls: Persona Switcher, Reset Demo, Guide & Alerts -->
+            <div class="flex items-center space-x-3">
+                <!-- Reset Demo Data Button -->
+                <button onclick="confirmResetDemo()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5 shadow-sm" title="Restore original seeded demo data">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Reset Demo Data</span>
+                </button>
+
+                <!-- Persona Switcher -->
+                <div class="flex items-center bg-blue-900/80 rounded-lg p-1 border border-blue-700/60 shadow-sm">
+                    <span class="text-xs text-blue-200 px-2 font-medium">View as:</span>
+                    <select id="persona-select" class="bg-white text-slate-900 text-xs font-semibold rounded px-2.5 py-1.5 border-0 focus:ring-2 focus:ring-amber-400 outline-none cursor-pointer">
+                        <option value="ADMIN">Admin / Council Leadership</option>
+                        <option value="RB">Regulation Bureau (RB)</option>
+                        <option value="PGRC">Public Grievance Redressal Cell (PGRC)</option>
+                    </select>
+                </div>
+
+                <!-- Alert Bell -->
+                <a href="#alerts" class="relative p-2 rounded-lg bg-blue-900/60 hover:bg-blue-800 text-blue-100 hover:text-white transition" title="View Open Alerts">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span id="top-alert-badge" class="absolute -top-1 -right-1 bg-rose-600 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-blue-900 shadow">
+                        0
+                    </span>
+                </a>
+
+                <!-- Demo Script Helper Button '?' -->
+                <button onclick="toggleDemoGuide()" class="text-xs font-bold bg-blue-900/80 hover:bg-blue-800 text-amber-300 hover:text-white w-7 h-7 rounded-lg border border-blue-700/80 flex items-center justify-center transition shadow-sm" title="Press '?' for Demo Flow Guide">
+                    ?
+                </button>
+            </div>
+        </div>
+
+        <!-- Persona Status Banner -->
+        <div id="persona-banner" class="bg-blue-950/90 px-6 py-1 text-xs text-blue-200 border-t border-blue-900/50 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Active Persona: <strong id="persona-label" class="text-white font-semibold">Admin / Council Leadership</strong></span>
+                <span id="persona-desc" class="text-blue-300 ml-2 hidden sm:inline">(Viewing all complaints across all bureaus)</span>
+            </div>
+            <div class="text-[11px] text-blue-300 flex items-center gap-3">
+                <span class="text-slate-400">Press <kbd class="px-1.5 py-0.5 bg-blue-900 text-amber-300 rounded font-mono text-[10px]">?</kbd> for live demo script</span>
+                <span>•</span>
+                <span>Official AICTE Prototype • Offline</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- MAIN WORKSPACE -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col border-r border-slate-800">
+            <nav class="p-3 space-y-1.5 flex-1 text-sm font-medium">
+                <a href="#dashboard" id="nav-dashboard" class="nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-white bg-blue-700/80 hover:bg-blue-600 transition">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Dashboard
+                    </span>
+                </a>
+
+                <a href="#cases" id="nav-cases" class="nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        All Cases
+                    </span>
+                    <span id="nav-cases-count" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">0</span>
+                </a>
+
+                <a href="#overlaps" id="nav-overlaps" class="nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Overlaps
+                    </span>
+                    <span id="nav-overlaps-count" class="text-xs bg-red-600/90 text-white font-bold px-2 py-0.5 rounded-full font-mono">0</span>
+                </a>
+
+                <a href="#institutions" id="nav-institutions" class="nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        Institutions
+                    </span>
+                    <span id="nav-institutions-count" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">25</span>
+                </a>
+
+                <a href="#alerts" id="nav-alerts" class="nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        Alerts
+                    </span>
+                    <span id="nav-alerts-count" class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">0</span>
+                </a>
+
+                <a href="#reports" id="nav-reports" class="nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Reports
+                    </span>
+                    <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-medium">CSV</span>
+                </a>
+            </nav>
+
+            <!-- Bottom System Info -->
+            <div class="p-3.5 bg-slate-950/60 border-t border-slate-800/80 text-[11px] text-slate-400">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-medium text-slate-300">Matching Engine</span>
+                    <span class="text-emerald-400 font-semibold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Active
+                    </span>
+                </div>
+                <div class="text-[10px] text-slate-500 leading-tight">
+                    Exact PID + RapidFuzz (Token/Partial Ratio ≥ 88)
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 lg:p-6" id="app-container">
+            <!-- Dynamic page content will be injected here by app.js -->
+        </main>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CASE DETAIL DRAWER (600px Right Slide-Over) -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="case-drawer-container" class="fixed inset-0 z-50 overflow-hidden hidden" role="dialog" aria-modal="true">
+        <!-- Backdrop (click outside to close) -->
+        <div id="case-drawer-backdrop" onclick="closeCaseDrawer()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] transition-opacity duration-300 opacity-0"></div>
+
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+            <!-- Slide-over panel (about 600px wide) -->
+            <div id="case-drawer-panel" class="w-screen max-w-[620px] bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 transform translate-x-full transition-transform duration-300 ease-in-out">
+                
+                <!-- Red Strip for Overlap if open -->
+                <div id="drawer-overlap-strip" class="hidden bg-rose-600 text-white text-xs font-bold px-5 py-2.5 flex items-center justify-between shadow-inner">
+                    <span class="flex items-center gap-2">
+                        <span class="animate-bounce text-base">⚠️</span>
+                        <span>Potential Overlapping Cases – Coordination Required</span>
+                    </span>
+                    <a href="#overlaps" onclick="closeCaseDrawer()" class="underline text-rose-100 hover:text-white text-[11px] font-semibold">View Overlaps →</a>
+                </div>
+
+                <!-- Drawer Header -->
+                <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span id="drawer-case-id" class="text-base font-bold font-mono text-blue-900">AICTE-Case</span>
+                        <span id="drawer-status-badge"></span>
+                        <span id="drawer-priority-badge"></span>
+                        <span id="drawer-bureau-badge"></span>
+                    </div>
+                    <button type="button" onclick="closeCaseDrawer()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200 transition" title="Close drawer (Esc)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- Scrollable Body Content -->
+                <div class="p-5 overflow-y-auto space-y-5 flex-1 text-sm text-slate-700" id="drawer-body-content">
+                    <!-- Populated dynamically by app.js -->
+                </div>
+
+                <!-- Bottom "Take Action" Panel -->
+                <div id="drawer-action-panel" class="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+                    <!-- Dynamically populated or embedded action form -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- DEMO SCRIPT HELPER MODAL ('?' shortcut) -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="demo-guide-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div class="px-5 py-3.5 bg-[#1e3a8a] text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🎯</span>
+                    <h3 class="font-bold text-sm tracking-wide">Live Demo Presentation Flow (5 Steps)</h3>
+                </div>
+                <button onclick="toggleDemoGuide()" class="text-blue-200 hover:text-white text-lg">✕</button>
+            </div>
+            <div class="p-5 space-y-3.5 text-xs text-slate-700 max-h-[80vh] overflow-y-auto">
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <span class="font-bold text-blue-900 block mb-0.5">1. Dashboard & Overlap Banner</span>
+                    <p class="text-slate-600">Show the 8 animated KPIs, Chart.js analytics across bureaus, and the prominent red overlap banner showing open cross-bureau conflicts.</p>
+                </div>
+
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <span class="font-bold text-amber-900 block mb-0.5">2. Overlaps Page & Matching Engine</span>
+                    <p class="text-slate-600">Navigate to <a href="#overlaps" onclick="toggleDemoGuide()" class="underline font-semibold text-amber-800">#overlaps</a>. Explain Layer 1 (Exact PID match across bureaus) and Layer 2 (RapidFuzz abbreviation-aware name match).</p>
+                </div>
+
+                <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <span class="font-bold text-purple-900 block mb-0.5">3. Live Transfer Overlap Trigger (The "WOW" Moment)</span>
+                    <p class="text-slate-600">Open a case from RB for <strong>Guru Nanak Engineering College</strong> (e.g. <span class="font-mono font-bold text-purple-900">AICTE-RB-2026-010</span>) or <strong>Lucknow Institute of Pharmacy</strong> (<span class="font-mono font-bold text-purple-900">AICTE-RB-2026-011</span>). Transfer it to PGRC. Watch the special toast fire: <span class="text-rose-700 font-bold">"⚠ New overlap detected with AICTE-RB-2026-006 – Coordination Required"</span> and the badge increment live!</p>
+                </div>
+
+                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <span class="font-bold text-emerald-900 block mb-0.5">4. Institution Profile Page</span>
+                    <p class="text-slate-600">Click on any institution name or go to <a href="#institutions" onclick="toggleDemoGuide()" class="underline font-semibold text-emerald-800">#institutions</a>. Show the consolidated complaints history, bureau involvement strip, and category mini chart.</p>
+                </div>
+
+                <div class="p-3 bg-slate-100 border border-slate-300 rounded-lg">
+                    <span class="font-bold text-slate-900 block mb-0.5">5. Reports & CSV Export</span>
+                    <p class="text-slate-600">Go to <a href="#reports" onclick="toggleDemoGuide()" class="underline font-semibold text-slate-800">#reports</a>. Preview reports, filter complaints register CSV export, download CSVs, or test "Print this page".</p>
+                </div>
+            </div>
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+                <span>Tip: Press <kbd class="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded font-mono">?</kbd> anytime to open/close this guide.</span>
+                <button onclick="toggleDemoGuide()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- Application Logic (Vanilla JS) -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
